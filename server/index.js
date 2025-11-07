@@ -2,10 +2,17 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// Middleware - Allow requests from Vercel frontend
+app.use(cors({
+  origin: [
+    'http://localhost:4200',
+    'http://localhost:3000',
+    /\.vercel\.app$/ // Allow all Vercel deployments
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // In-memory storage for games

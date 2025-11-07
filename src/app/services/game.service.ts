@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, interval } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface Player {
   id: string;
@@ -29,7 +30,7 @@ export interface Game {
   providedIn: 'root'
 })
 export class GameService {
-  private readonly API_URL = 'http://localhost:3000/api';
+  private readonly API_URL = environment.apiUrl;
   private currentGameSubject = new BehaviorSubject<Game | null>(null);
   private currentPlayerSubject = new BehaviorSubject<Player | null>(null);
   private pollingInterval: any;
