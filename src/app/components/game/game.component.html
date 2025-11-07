@@ -1,0 +1,350 @@
+<div class="min-h-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex flex-col">
+  <!-- Header -->
+  <div class="bg-slate-900/90 backdrop-blur border-b border-slate-700 px-4 py-3 flex justify-between items-center flex-shrink-0">
+    <div class="text-white">
+      <h1 class="text-lg font-semibold">{{ currentPlayer?.name }}</h1>
+      <p class="text-slate-400 text-xs">Code: {{ game?.code }}</p>
+    </div>
+    <div class="flex gap-2">
+      <button 
+        (click)="toggleHandRankings()"
+        class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded text-sm font-medium">
+        Hands
+      </button>
+      <button 
+        (click)="leaveGame()"
+        class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm font-medium">
+        Leave
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content - Scrollable -->
+  <div class="flex-1 overflow-y-auto">
+    <div class="max-w-6xl mx-auto p-4 space-y-4">
+      <!-- Pot and Actions Row -->
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div class="flex items-center justify-between gap-4">
+          <!-- Pot Display -->
+          <div class="flex-1">
+            <p class="text-slate-400 text-xs uppercase tracking-wide mb-1">Pot</p>
+            <p class="text-4xl font-bold text-emerald-400">{{ game?.pot || 0 }}</p>
+          </div>
+          
+          <!-- Winner Button -->
+          <button 
+            (click)="collectPot()"
+            [disabled]="!game || game.pot === 0"
+            class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-500 text-white px-6 py-3 rounded font-semibold disabled:cursor-not-allowed whitespace-nowrap">
+            Collect Pot
+          </button>
+        </div>
+        
+        <!-- Highest Bet Indicator -->
+        <div *ngIf="game && game.highestBet > 0" class="mt-3 pt-3 border-t border-slate-700">
+          <p class="text-xs text-slate-400 mb-1">Current bet to match:</p>
+          <p class="text-xl font-bold text-amber-400">{{ game.highestBet }}</p>
+        </div>
+      </div>
+
+      <!-- Chip Comparison Chart -->
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <h3 class="text-white font-semibold mb-3">Chip Stacks</h3>
+        <div class="space-y-3">
+          <div *ngFor="let player of game?.players" class="space-y-1">
+            <div class="flex items-center justify-between text-sm">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                  {{ player.name.charAt(0).toUpperCase() }}
+                </div>
+                <span class="text-white font-medium">{{ player.name }}</span>
+                <span *ngIf="player.id === currentPlayer?.id" class="text-xs text-emerald-400">(You)</span>
+              </div>
+              <span class="text-white font-bold">{{ player.chips }}</span>
+            </div>
+            <div class="h-2 bg-slate-900 rounded-full overflow-hidden">
+              <div 
+                class="h-full transition-all duration-300"
+                [class.bg-emerald-500]="player.id === currentPlayer?.id"
+                [class.bg-slate-600]="player.id !== currentPlayer?.id"
+                [style.width.%]="getChipPercentage(player)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Players Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div 
+          *ngFor="let player of game?.players"
+          [class.ring-2]="player.id === currentPlayer?.id"
+          [class.ring-emerald-500]="player.id === currentPlayer?.id"
+          [class.opacity-50]="player.folded"
+          class="bg-slate-800 rounded-lg p-3 border border-slate-700">
+          
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+              {{ player.name.charAt(0).toUpperCase() }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-white text-sm truncate">{{ player.name }}</p>
+              <span *ngIf="player.folded" class="text-xs text-slate-500">Folded</span>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <div>
+              <p class="text-xs text-slate-400">Stack</p>
+              <p class="text-lg font-bold text-white">{{ player.chips }}</p>
+            </div>
+            <div *ngIf="player.currentBet > 0" class="pt-1.5 border-t border-slate-700">
+              <p class="text-xs text-slate-400">Current Bet</p>
+              <p class="text-lg font-bold text-amber-400">{{ player.currentBet }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Betting Controls -->
+      <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <h3 class="text-white font-semibold mb-3">Your Action</h3>
+
+        <div *ngIf="currentPlayer?.folded" class="text-center py-6">
+          <p class="text-slate-400 mb-3">You've folded this round</p>
+          <button 
+            (click)="simpleNewHand()"
+            class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded font-medium">
+            New Round
+          </button>
+        </div>
+
+        <div *ngIf="!currentPlayer?.folded">
+          <!-- Call/Fold Actions -->
+          <div *ngIf="needsToCall()" class="bg-amber-950/30 border border-amber-800 rounded p-3 mb-3">
+            <p class="text-amber-300 text-sm mb-2">
+              Match {{ game?.highestBet }} ({{ getCallAmount() }} more needed)
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <button 
+                (click)="callBet()"
+                [disabled]="getCallAmount() > (currentPlayer?.chips || 0)"
+                class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-500 text-white py-2 rounded font-semibold disabled:cursor-not-allowed">
+                Match
+              </button>
+              <button 
+                (click)="foldHand()"
+                class="bg-slate-700 hover:bg-slate-600 text-white py-2 rounded font-semibold">
+                Fold
+              </button>
+            </div>
+          </div>
+
+          <!-- Selected Bet Display -->
+          <div *ngIf="betAmount > 0" class="bg-emerald-950/30 border border-emerald-700 rounded p-3 mb-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs text-slate-400 mb-1">Betting</p>
+                <p class="text-3xl font-bold text-emerald-400">{{ betAmount }}</p>
+              </div>
+              <button 
+                (click)="resetBet()"
+                class="text-slate-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Bet Amounts -->
+          <div class="grid grid-cols-3 gap-2 mb-3">
+            <button 
+              *ngFor="let amount of quickBets"
+              (click)="selectQuickBet(amount)"
+              [class.bg-emerald-600]="betAmount === amount"
+              [class.text-white]="betAmount === amount"
+              [class.bg-slate-700]="betAmount !== amount"
+              [class.text-slate-300]="betAmount !== amount"
+              class="py-2.5 rounded font-semibold text-base hover:bg-emerald-700 transition">
+              {{ amount }}
+            </button>
+          </div>
+
+          <!-- Custom/All In Row -->
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <button 
+              (click)="toggleCustomInput()"
+              [class.bg-slate-600]="showCustomInput"
+              [class.bg-slate-700]="!showCustomInput"
+              class="text-white py-2 rounded font-medium hover:bg-slate-600">
+              Custom
+            </button>
+            <button 
+              (click)="allIn()"
+              class="bg-red-600 hover:bg-red-700 text-white py-2 rounded font-medium">
+              All In
+            </button>
+          </div>
+
+          <!-- Custom Input -->
+          <div *ngIf="showCustomInput" class="flex gap-2 mb-3">
+            <input 
+              type="number" 
+              [(ngModel)]="customAmount"
+              placeholder="Amount"
+              (keyup.enter)="setCustomAmount()"
+              class="flex-1 px-3 py-2 bg-slate-900 border border-slate-600 rounded text-white focus:outline-none focus:border-emerald-500">
+            <button 
+              (click)="setCustomAmount()"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded font-semibold">
+              Set
+            </button>
+          </div>
+
+          <!-- Place Bet Button -->
+          <button 
+            (click)="placeBet()"
+            [disabled]="betAmount === 0 || !currentPlayer || betAmount > currentPlayer.chips"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-500 text-white py-3 rounded-lg font-bold text-lg disabled:cursor-not-allowed">
+            Place Bet ({{ betAmount || 0 }})
+          </button>
+
+          <!-- Clear Round -->
+          <div class="mt-3 text-center">
+            <button 
+              (click)="simpleNewHand()"
+              class="text-slate-400 hover:text-white text-sm font-medium">
+              Clear bets & start new round
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hand Rankings Modal -->
+  <div *ngIf="showHandRankings" 
+       class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+       (click)="toggleHandRankings()">
+    <div class="bg-slate-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto" 
+         (click)="$event.stopPropagation()">
+      <div class="sticky top-0 bg-slate-900 px-4 py-3 border-b border-slate-700 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-white">Poker Hands</h2>
+        <button (click)="toggleHandRankings()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+      </div>
+      
+      <div class="p-4 space-y-2">
+        <div class="bg-slate-900 border border-yellow-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-yellow-500">1</div>
+            <div>
+              <h3 class="font-bold text-white">Royal Flush</h3>
+              <p class="text-sm text-slate-300">A♠ K♠ Q♠ J♠ 10♠</p>
+              <p class="text-xs text-slate-400">Best hand - highest cards, same suit</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-purple-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-purple-500">2</div>
+            <div>
+              <h3 class="font-bold text-white">Straight Flush</h3>
+              <p class="text-sm text-slate-300">9♥ 8♥ 7♥ 6♥ 5♥</p>
+              <p class="text-xs text-slate-400">5 in a row, same suit</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-red-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-red-500">3</div>
+            <div>
+              <h3 class="font-bold text-white">Four of a Kind</h3>
+              <p class="text-sm text-slate-300">K♠ K♥ K♦ K♣ 3♠</p>
+              <p class="text-xs text-slate-400">4 same cards</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-green-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-green-500">4</div>
+            <div>
+              <h3 class="font-bold text-white">Full House</h3>
+              <p class="text-sm text-slate-300">Q♠ Q♥ Q♦ 4♣ 4♠</p>
+              <p class="text-xs text-slate-400">3 of one + 2 of another</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-blue-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-blue-500">5</div>
+            <div>
+              <h3 class="font-bold text-white">Flush</h3>
+              <p class="text-sm text-slate-300">A♦ J♦ 9♦ 6♦ 2♦</p>
+              <p class="text-xs text-slate-400">All same suit</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-indigo-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-indigo-500">6</div>
+            <div>
+              <h3 class="font-bold text-white">Straight</h3>
+              <p class="text-sm text-slate-300">10♠ 9♥ 8♦ 7♣ 6♠</p>
+              <p class="text-xs text-slate-400">5 in a row</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-pink-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-pink-500">7</div>
+            <div>
+              <h3 class="font-bold text-white">Three of a Kind</h3>
+              <p class="text-sm text-slate-300">7♠ 7♥ 7♦ K♣ 3♠</p>
+              <p class="text-xs text-slate-400">3 same cards</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-amber-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-amber-500">8</div>
+            <div>
+              <h3 class="font-bold text-white">Two Pair</h3>
+              <p class="text-sm text-slate-300">J♠ J♥ 5♦ 5♣ 2♠</p>
+              <p class="text-xs text-slate-400">2 different pairs</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-teal-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-teal-500">9</div>
+            <div>
+              <h3 class="font-bold text-white">One Pair</h3>
+              <p class="text-sm text-slate-300">A♠ A♥ K♦ 8♣ 4♠</p>
+              <p class="text-xs text-slate-400">2 same cards</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-600 rounded p-3">
+          <div class="flex items-start gap-3">
+            <div class="text-xl font-bold text-slate-400">10</div>
+            <div>
+              <h3 class="font-bold text-white">High Card</h3>
+              <p class="text-sm text-slate-300">A♠ J♥ 9♦ 5♣ 2♠</p>
+              <p class="text-xs text-slate-400">Highest card wins</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

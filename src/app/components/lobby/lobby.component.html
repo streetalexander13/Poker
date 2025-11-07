@@ -1,0 +1,119 @@
+<div class="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 flex items-center justify-center p-4">
+  <div class="max-w-2xl w-full">
+    <!-- Game Code Card -->
+    <div class="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Game Lobby</h2>
+        <p class="text-gray-600">Waiting for players to join...</p>
+      </div>
+
+      <!-- Game Code Display -->
+      <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border-2 border-green-200">
+        <p class="text-sm text-gray-600 mb-2 text-center">Share this code with your friends:</p>
+        <div class="text-center">
+          <p class="text-5xl font-bold text-green-700 tracking-widest mb-4">{{ game?.code }}</p>
+          <div class="flex gap-3 justify-center">
+            <button 
+              (click)="copyGameCode()"
+              class="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg shadow border border-gray-200 transition-all duration-200">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              {{ copied ? 'Copied!' : 'Copy Code' }}
+            </button>
+            <button 
+              (click)="shareGame()"
+              class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow transition-all duration-200">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+              </svg>
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Players List -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          </svg>
+          Players ({{ (game?.players?.length) || 0 }})
+        </h3>
+        <div class="space-y-2">
+          <div 
+            *ngFor="let player of game?.players"
+            class="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold border-4 border-white shadow-lg">
+                  {{ player.name.charAt(0).toUpperCase() }}
+                </div>
+                <div *ngIf="player.isHost" class="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center shadow">
+                  <span class="text-xs">👑</span>
+                </div>
+              </div>
+              <div>
+                <p class="font-bold text-gray-800 flex items-center gap-2">
+                  {{ player.name }}
+                  <span *ngIf="player.id === currentPlayer?.id" class="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">You</span>
+                </p>
+                <div class="flex items-center gap-2">
+                  <!-- Poker chip icon -->
+                  <div class="w-5 h-5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full border-2 border-white shadow flex items-center justify-center">
+                    <span class="text-white text-[8px] font-bold">$</span>
+                  </div>
+                  <p class="text-sm text-gray-600 font-semibold">{{ player.chips }} chips</p>
+                </div>
+              </div>
+            </div>
+            <div class="text-green-600">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3">
+        <button 
+          *ngIf="isHost"
+          (click)="startGame()"
+          [disabled]="!game || game.players.length < 2"
+          [class.opacity-50]="!game || game.players.length < 2"
+          [class.cursor-not-allowed]="!game || game.players.length < 2"
+          class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:transform-none disabled:hover:shadow-lg">
+          Start Game
+        </button>
+
+        <div *ngIf="isHost && (!game || game.players.length < 2)" class="text-center text-sm text-gray-500">
+          <p>⏳ Waiting for at least 2 players to start...</p>
+        </div>
+
+        <div *ngIf="!isHost" class="text-center text-gray-600 py-4">
+          <p class="flex items-center justify-center gap-2">
+            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Waiting for host to start the game...
+          </p>
+        </div>
+
+        <button 
+          (click)="leaveGame()"
+          class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-all duration-200">
+          Leave Game
+        </button>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="text-center text-green-100 text-sm">
+      <p>💡 All players should join before starting the game</p>
+    </div>
+  </div>
+</div>
