@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://YOUR-BACKEND-URL.railway.app/api' // Update this after deploying backend
+  apiUrl: 'https://poker-chips-backend.onrender.com/api' // Replace with YOUR actual Render URL
 };
 
