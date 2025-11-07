@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://poker-chips-backend.onrender.com/api' // Replace with YOUR actual Render URL
+  apiUrl: 'https://poker-9fus.onrender.com/api'
 };
 
